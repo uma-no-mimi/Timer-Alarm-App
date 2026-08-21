@@ -1,0 +1,120 @@
+@startuml
+title 複数アラーム連続発火シナリオ（4:00, 4:01, 4:02発火順）
+
+actor ユーザー
+participant "アラーム管理" as Manager
+participant "4:00" as A1
+participant "4:01" as A2
+participant "4:02" as A3
+participant "発火キュー" as Queue
+participant "音声管理" as Sound
+participant "アラーム画面" as Screen
+
+== 4:00 発火 ==
+note right of Manager : 現在時刻 4:00
+Manager -> A1 : 時刻一致
+A1 -> A1 : Ringing
+A1 -> Queue : 追加（1番目）
+Queue -> Sound : 再生開始（先頭のため）
+Sound -> Sound : 🔊 アラーム音再生
+A1 --> Screen : 🔔鳴動中
+
+== 4:01 発火 ==
+note right of Manager : 現在時刻 4:01
+Manager -> A2 : 時刻一致
+A2 -> A2 : Ringing
+A2 -> Queue : 追加（2番目）
+Queue -> Queue : A1が再生中、待機
+A2 --> Screen : 🔔発火済（待機中）
+
+== 4:02 発火 ==
+note right of Manager : 現在時刻 4:02
+Manager -> A3 : 時刻一致
+A3 -> A3 : Ringing
+A3 -> Queue : 追加（3番目）
+Queue -> Queue : A1が再生中、待機
+A3 --> Screen : 🔔発火済（待機中）
+
+alt ケース1: スヌーズボタン押下
+    note right : ユーザーがスヌーズ
+    ユーザー -> Screen : スヌーズボタン
+    Screen -> A1 : スヌーズ要求
+    A1 -> Sound : 音声停止
+    Sound -> Sound : 🔊 停止
+    A1 -> A1 : Snoozing(5分)
+    A1 -> Queue : キューから除外
+    Queue -> A2 : 次のアラームの番
+    A2 -> Sound : 再生開始
+    Sound -> Sound : 🔊 アラーム音再生
+    Screen --> ユーザー : 「4:00 💤スヌーズ中」「4:01 🔔鳴動中」
+
+    == 再度スヌーズ押下 ==
+    ユーザー -> Screen : スヌーズボタン
+    Screen -> A2 : スヌーズ要求
+    A2 -> Sound : 音声停止
+    Sound -> Sound : 🔊 停止
+    A2 -> A2 : Snoozing(5分)
+    A2 -> Queue : キューから除外
+    Queue -> A3 : 次のアラームの番
+    A3 -> Sound : 再生開始
+    Sound -> Sound : 🔊 アラーム音再生
+    Screen --> ユーザー : 「4:02 🔔鳴動中」
+
+else ケース2: 3分経過（自動停止→スヌーズ→次へ）
+    note right : 4:00が3分経過（4:03）
+    A1 -> A1 : 鳴動開始から3分
+    A1 -> Sound : 音声停止
+    Sound -> Sound : 🔊 停止
+    A1 -> A1 : Snoozing(5分)
+    A1 -> Queue : キューから除外
+    Queue -> A2 : 次のアラームの番
+    A2 -> Sound : 再生開始
+    Sound -> Sound : 🔊 アラーム音再生
+    Screen --> ユーザー : 「4:01 🔔鳴動中」
+
+    note right : 4:01が3分経過（4:06）
+    A2 -> A2 : 鳴動開始から3分
+    A2 -> Sound : 音声停止
+    Sound -> Sound : 🔊 停止
+    A2 -> A2 : Snoozing(5分)
+    A2 -> Queue : キューから除外
+    Queue -> A3 : 次のアラームの番
+    A3 -> Sound : 再生開始
+    Sound -> Sound : 🔊 アラーム音再生
+    Screen --> ユーザー : 「4:02 🔔鳴動中」
+
+    note right : 4:02が3分経過（4:09）
+    A3 -> A3 : 鳴動開始から3分
+    A3 -> Sound : 音声停止
+    Sound -> Sound : 🔊 停止
+    A3 -> A3 : Snoozing(5分)
+    A3 -> Queue : キューから除外
+    Queue -> Queue : キュー空
+    Screen --> ユーザー : 🔊 全アラーム停止中
+
+else ケース3: 停止ボタン押下（途中で全停止）
+    note right : ユーザーが4:00鳴動中に停止
+    ユーザー -> Screen : 停止ボタン
+    Screen -> Queue : 全停止要求
+    Queue -> A1 : 停止（キューから除外）
+    A1 -> A1 : Enabled
+    Queue -> A2 : 停止（キューから除外）
+    A2 -> A2 : Enabled
+    Queue -> A3 : 停止（キューから除外）
+    A3 -> A3 : Enabled
+    Queue -> Sound : 音声停止
+    Sound -> Sound : 🔊 停止
+    Screen --> ユーザー : 「全アラーム 有効（翌日も発火）」
+
+else ケース4: スヌーズ再発火時に次のアラームが存在する
+    note right : 4:00がSnoozing(〜4:05)→4:05に再発火\nしかし4:01がまだRinging待機中
+    A1 -> A1 : 5分経過（4:05）
+    A1 -> A1 : Ringing（3回未満）
+    A1 -> Queue : キューに再追加（最後尾に）
+    note right : キュー状態: [A2(4:01), A3(4:02), A1(4:00:再)]
+    Queue -> Queue : A2が先頭のためA2の再生を継続
+    Screen --> ユーザー : 「4:01 🔔鳴動中（継続）」「4:00 🔔再発火済（待機中）」
+
+end
+
+@enduml

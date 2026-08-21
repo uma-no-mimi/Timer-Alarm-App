@@ -1,0 +1,88 @@
+/* =========================
+  共通のCSS
+========================= */
+
+/* =========================
+  ヘッダー
+========================= */
+
+.header {
+  height: 88px;
+
+  background-color: #333333;
+
+  display: flex;
+  align-items: center;
+
+  position: relative;
+}
+
+.header h1 {
+  position: absolute;
+
+  top: 12px;
+  left: 20px;
+
+  color: #ffffff;
+
+  font-size: 22px;
+  font-weight: 400;
+}
+
+
+/* =========================
+  モード切替
+========================= */
+
+.mode-nav {
+  margin: 0 auto;
+
+  display: flex;
+  gap: 30px;
+
+  padding-top: 4px;
+}
+
+.mode-button {
+  width: 180px;
+  height: 36px;
+
+  border: 1px solid #000000;
+
+  background-color: #b3b3b3;
+
+  font-size: 1.25rem;
+  color: #000000;
+
+  cursor: pointer;
+}
+
+.mode-button.active {
+  background-color: #4d90d8;
+  color: #ffffff;
+}
+
+
+/* =========================
+  モード画面
+========================= */
+
+.mode-screen {
+  min-height: calc(100vh - 88px);
+
+  position: relative;
+}
+
+
+/* =========================
+  非表示の設定
+  （設定済み display より優先させるため最後に定義）
+========================= */
+
+.hidden {
+  display: none;
+}
+
+.invisible {
+  visibility: hidden;
+}

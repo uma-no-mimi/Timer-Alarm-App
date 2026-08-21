@@ -1,0 +1,228 @@
+/* =========================
+  タイマーのCSS
+========================= */
+
+/* =========================
+  タイマー表示
+========================= */
+
+.timer-display {
+  text-align: center;
+
+  padding-top: 5px;
+
+  font-size: clamp(5rem, 12vw, 130px);
+  line-height: 1;
+
+  font-weight: 400;
+
+  font-variant-numeric: tabular-nums;
+
+  letter-spacing: -2px;
+}
+
+/* 実行中のタイマー表示の文字色 */
+.timer-display.running {
+  color: #4A90D9;
+}
+
+/* 一時停止中のタイマー表示の文字色 */
+.timer-display.paused {
+  color: #40916C;
+}
+
+/* 鳴動中のタイマー表示の文字色 */
+.timer-display.ringing {
+  color: #EF9745;
+}
+
+/* =========================
+  設定したタイマー時間の表示欄
+  ※タイマー稼働中のみ表示される
+========================= */
+
+.timer-set-display {
+  text-align: center;
+
+  padding-top: 25px;
+
+  color: #AAAAAA;
+
+  font-size: 3rem;
+
+  letter-spacing: 2px;
+}
+
+
+/* =========================
+  タイマー履歴ボタン
+========================= */
+
+.history-button {
+  display: block;
+
+  width: 180px;
+  height: 36px;
+
+  margin: 55px auto 0;
+
+  border: 1px solid #000000;
+
+  background-color: #666666;
+
+  font-size: 1.25rem;
+
+  cursor: pointer;
+}
+
+.history-icon {
+  font-size: 1.2em; /* 親ボタンのフォントサイズに対する相対 */
+}
+
+
+/* =========================
+  タイマー設定
+========================= */
+
+.timer-setting {
+  width: min(1110px, 92%);
+
+  margin: 40px auto 0;
+}
+
+.slider-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.slider-row label {
+  width: 75px;
+  font-size: 1.25rem;
+  text-align: right;
+  margin-right: 10px;
+}
+
+.slider-value {
+  width: 90px;
+  height: 36px;
+
+  border: 1px solid #000000;
+
+  background-color: #ffffff;
+
+  font-size: 1.25rem;
+  font-family: inherit;
+
+  text-align: center;
+
+  margin-right: 12px;
+}
+
+
+/* =========================
+  スライダー
+========================= */
+
+.slider-row input[type="range"] {
+  order: 1;
+
+  flex: 1;
+
+  height: 8px;
+
+  margin-right: 15px;
+
+  appearance: none;
+
+  background-color: #dddddd;
+
+  border: 1px solid #000000;
+
+  border-radius: 4px;
+}
+
+/* スライダーのつまみ */
+
+.slider-row input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+
+  width: 25px;
+  height: 25px;
+
+  background-color: #ffffff;
+
+  border: 1px solid #000000;
+
+  border-radius: 50%;
+
+  cursor: pointer;
+}
+
+
+/* =========================
+  タイマー操作ボタン
+========================= */
+
+.timer-actions {
+  margin-top: 15px;
+
+  text-align: center;
+}
+
+.timer-actions .start-button {
+  margin-top: 0;
+}
+
+.timer-cancel {
+  margin-top: 12px;
+
+  text-align: center;
+}
+
+.timer-cancel .start-button {
+  margin-top: 0;
+}
+
+.start-button {
+  display: block;
+
+  width: 180px;
+  height: 36px;
+
+  margin: 15px auto 0;
+
+  border: 1px solid #000000;
+
+  background-color: #4A90D9;
+
+  color: #ffffff;
+
+  font-size: 1.25rem;
+
+  cursor: pointer;
+}
+
+/* ---- 操作ボタンの色分け ---- */
+
+.stop-button {
+  background-color: #EF9745;
+  color: #ffffff;
+}
+
+.pause-button {
+  background-color: #40916C;
+  color: #ffffff;
+}
+
+/* Resume ボタン（一時停止中に表示される操作ボタン） */
+.resume-button {
+  background-color: #4A90D9;
+  color: #ffffff;
+}
+
+.cancel-button {
+  background-color: #b3b3b3;
+  color: #000000;
+}
+

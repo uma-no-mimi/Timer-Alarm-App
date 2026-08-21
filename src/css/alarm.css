@@ -1,0 +1,179 @@
+/* =========================
+  アラームモードのCSS
+========================= */
+
+/* =========================
+  アラーム表示・設定ボタン
+========================= */
+
+.alarm-display {
+  padding-top: 30px;
+}
+
+.alarm-setting-button {
+  display: block;
+
+  width: 180px;
+  height: 36px;
+
+  margin: 35px auto 0;
+
+  border: 1px solid #000000;
+
+  background-color: #4d90d8;
+
+  font-size: 1.25rem;
+
+  cursor: pointer;
+}
+
+
+/* =========================
+  アラームリスト
+========================= */
+
+.alarm-list {
+  position: absolute;
+
+  top: 255px;
+
+  left: 50%;
+
+  transform: translateX(-50%);
+
+  width: min(870px, 92%);
+
+  border-top: 3px solid #000000;
+
+  padding-top: 10px;
+}
+
+.alarm-list h2 {
+  text-align: center;
+
+  font-size: 1.25rem;
+
+  font-weight: 400;
+
+  margin-bottom: 8px;
+}
+
+
+/* =========================
+  アラーム項目
+========================= */
+
+.alarm-item {
+  height: 46px;
+
+  margin-bottom: 5px;
+
+  border: 2px solid #000000;
+
+  border-radius: 9px;
+
+  background-color: #b3b3b3;
+
+  display: flex;
+
+  align-items: center;
+}
+
+.alarm-item.enabled {
+  background-color: #4d90d8;
+}
+
+
+/* =========================
+  アラームトグル（ON/OFF切替）
+========================= */
+
+.toggle {
+  position: relative;
+
+  width: 48px;
+  height: 28px;
+
+  margin-left: 15px;
+
+  display: block;
+}
+
+.toggle input {
+  display: none;
+}
+
+.toggle-slider {
+  position: absolute;
+
+  inset: 0;
+
+  background-color: transparent;
+
+  border: 3px solid #000000;
+
+  border-radius: 20px;
+
+  cursor: pointer;
+}
+
+.toggle-slider::before {
+  content: "";
+
+  position: absolute;
+
+  width: 16px;
+  height: 16px;
+
+  top: 3px;
+  left: 3px;
+
+  background-color: #000000;
+
+  border-radius: 50%;
+
+  transition: 0.2s;
+}
+
+.toggle input:checked + .toggle-slider::before {
+  transform: translateX(20px);
+
+  background-color: #4d90d8;
+}
+
+.alarm-item.enabled .toggle-slider {
+  background-color: #000000;
+}
+
+
+/* =========================
+  アラーム時刻
+========================= */
+
+.alarm-time {
+  margin-left: 125px;
+
+  font-size: 1.25rem;
+}
+
+
+/* =========================
+  アラーム削除ボタン
+========================= */
+
+.delete-button {
+  margin-left: auto;
+
+  margin-right: 15px;
+
+  width: 24px;
+  height: 24px;
+
+  border: none;
+
+  background: transparent;
+
+  font-size: 18px;
+
+  cursor: pointer;
+}

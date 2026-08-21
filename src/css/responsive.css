@@ -1,0 +1,129 @@
+/* =========================
+  レスポンシブのCSS
+========================= */
+
+
+/* =========================
+  レスポンシブ対応（PC）
+========================= */
+
+/* ---- 幅が狭い場合 ---- */
+
+@media (max-width: 1080px) {
+  .mode-nav {
+    gap: 20px;
+  }
+
+  .mode-button {
+    width: 150px;
+  }
+
+  .alarm-time {
+    margin-left: 80px;
+  }
+}
+
+@media (max-width: 840px) {
+  .mode-button {
+    width: 130px;
+    height: 34px;
+    font-size: 18px;
+  }
+
+  .history-button,
+  .alarm-setting-button,
+  .start-button {
+    width: 150px;
+    font-size: 18px;
+  }
+
+  .slider-row label {
+    width: 55px;
+  }
+
+  .slider-value {
+    width: 70px;
+  }
+}
+
+/* ---- 高さが低い場合 ---- */
+
+@media (max-height: 680px) {
+  .header {
+    height: 64px;
+  }
+
+  .mode-screen {
+    min-height: calc(100vh - 64px);
+  }
+
+  .header h1 {
+    top: 21px;
+  }
+
+  .alarm-display {
+    padding-top: 20px;
+  }
+
+  .history-button {
+    margin-top: 24px;
+  }
+
+  .timer-setting {
+    margin-top: 20px;
+  }
+
+  .slider-row {
+    margin-bottom: 10px;
+  }
+
+  .alarm-setting-button {
+    margin-top: 20px;
+  }
+
+  .alarm-list {
+    top: 190px;
+  }
+}
+
+@media (max-height: 540px) {
+  .timer-display {
+    padding-top: 5px;
+    font-size: clamp(70px, 11vh, 6.25rem);
+  }
+
+  .alarm-display {
+    padding-top: 6px;
+    font-size: clamp(70px, 11vh, 6.25rem);
+  }
+
+  .history-button {
+    margin-top: 10px;
+  }
+
+  .timer-setting {
+    margin-top: 12px;
+  }
+
+  .alarm-setting-button {
+    margin-top: 8px;
+  }
+
+  .alarm-list {
+    top: 130px;
+  }
+
+  .alarm-item {
+    height: 40px;
+    margin-bottom: 4px;
+  }
+
+  .alarm-list h2 {
+    margin-bottom: 4px;
+  }
+}
+
+
+.hidden {
+  display: none;
+}
