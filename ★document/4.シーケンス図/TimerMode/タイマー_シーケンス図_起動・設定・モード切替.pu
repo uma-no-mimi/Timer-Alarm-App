@@ -1,0 +1,91 @@
+@startuml
+title タイマー機能 シーケンス図 起動・初期化 / モード切替 / タイマー設定入力
+
+actor 利用者
+participant "main（入口）"
+participant "ModeController（画面切替）"
+participant "TimerInput（入力欄）"
+participant "TimerController（画面制御）"
+participant "Timer（タイマー本体）"
+participant "AppStorage（保存）"
+participant "TimerHistoryManager（履歴管理）"
+participant "TimerHistoryModal（履歴モーダル）"
+
+' ============================================================
+' 1. 起動・初期化（main.ts）
+' ============================================================
+== 1. 起動・初期化（main.ts） ==
+
+"main（入口）" -> "main（入口）" : 画面の各要素（DOM）を取得する\n（モード画面・切り替えボタン・入力欄・表示欄など）
+"main（入口）" -> "ModeController（画面切替）" : new ModeController()\nモード切替クラスを生成
+"main（入口）" -> "TimerInput（入力欄）" : new TimerInput(入力欄)\n時・分・秒の3つの入力欄を作る
+"main（入口）" -> "Timer（タイマー本体）" : new Timer()\nタイマー本体を生成
+"main（入口）" -> "AppStorage（保存）" : new AppStorage()\n保存処理を生成
+"main（入口）" -> "TimerHistoryManager（履歴管理）" : new TimerHistoryManager(保存)\n履歴管理を生成
+activate "TimerHistoryManager（履歴管理）"
+"TimerHistoryManager（履歴管理）" -> "AppStorage（保存）" : load()\n保存済みデータを読み込む
+"AppStorage（保存）" --> "TimerHistoryManager（履歴管理）" : 保存されていた履歴を返す
+note right of "TimerHistoryManager（履歴管理）"
+  起動時に保存済みのタイマー履歴を取り込む
+end note
+deactivate "TimerHistoryManager（履歴管理）"
+"main（入口）" -> "TimerHistoryModal（履歴モーダル）" : new TimerHistoryModal(\nモーダル要素, 入力欄, 履歴管理)\n履歴モーダルを生成
+"main（入口）" -> "TimerController（画面制御）" : new TimerController(\n表示欄・ボタン・タイマー本体・\n入力欄・履歴管理・履歴モーダル)\n画面制御を生成
+activate "TimerController（画面制御）"
+"TimerController（画面制御）" -> "Timer（タイマー本体）" : setEvents(変化の通知先を登録)\n残り時間・状態の変化を受け取る
+"TimerController（画面制御）" -> "TimerController（画面制御）" : 操作ボタン・キャンセルボタン・\n履歴ボタンにクリック処理を登録
+deactivate "TimerController（画面制御）"
+"main（入口）" -> "TimerInput（入力欄）" : setChangeListener(変化を通知)\n入力が変わったらボタン表示を更新
+"main（入口）" -> "ModeController（画面切替）" : showTimerMode()\n表示開始
+"ModeController（画面切替）" -> "ModeController（画面切替）" : setMode()\nタイマー画面を表示する
+"main（入口）" -> "TimerController（画面制御）" : refreshButtons()\n初期のボタン表示を反映
+"TimerController（画面制御）" -> "TimerController（画面制御）" : updateUi()\nボタン表示・入力ロックを初期化
+
+' ============================================================
+' 2. モード切替
+' ============================================================
+== 2. モード切替（ボタン押下） ==
+
+利用者 -> "ModeController（画面切替）" : 「Timer-Mode」または「Alarm-Mode」\nボタンをクリック
+activate "ModeController（画面切替）"
+"ModeController（画面切替）" -> "ModeController（画面切替）" : showTimerMode() / showAlarmMode()\n→ 表示するモードを決める
+"ModeController（画面切替）" -> "ModeController（画面切替）" : 画面の非表示（hidden）と\n選択中ボタンの色（active）を切り替える
+note right of "ModeController（画面切替）"
+  該当の画面だけを表示し、タイマー本体の状態は保持する
+end note
+"ModeController（画面切替）" --> 利用者 : 画面切替が完了
+deactivate "ModeController（画面切替）"
+
+' ============================================================
+' 3. タイマー設定入力（スライダー・テキストボックス）
+' ============================================================
+== 3. タイマー設定入力 ==
+
+利用者 -> "TimerInput（入力欄）" : 時・分・秒を操作\n（スライダー / テキスト入力 / Enter）
+activate "TimerInput（入力欄）"
+"TimerInput（入力欄）" -> "TimerInput（入力欄）" : スライダーとテキストボックスを相互に反映\n（入力途中は解釈できる範囲で反映）
+"TimerInput（入力欄）" -> "TimerInput（入力欄）" : 入力値を補完ルールで正規化
+note right of "TimerInput（入力欄）"
+  補完ルール：
+  ・上限を超える数 → 上限値
+  ・小数 → 切り上げ
+  ・負の数 → 絶対値＆上限補完
+end note
+"TimerInput（入力欄）" -> "TimerInput（入力欄）" : 入力が変わったことを通知
+"TimerInput（入力欄）" -> "TimerController（画面制御）" : ボタン表示の更新を依頼
+deactivate "TimerInput（入力欄）"
+
+' ---- ボタン状態の更新（refreshButtons → updateUi） ----
+activate "TimerController（画面制御）"
+"TimerController（画面制御）" -> "TimerController（画面制御）" : updateUi()\n表示・ボタンをまとめて更新
+"TimerController（画面制御）" -> "TimerController（画面制御）" : 操作ボタンの表示を更新
+"TimerController（画面制御）" -> "TimerInput（入力欄）" : getTotalSeconds()\n合計秒数を取得
+"TimerInput（入力欄）" --> "TimerController（画面制御）" : 合計秒数を返す
+note right of "TimerController（画面制御）"
+  00:00:01 以上なら「Start」を表示、
+  それ未満なら操作ボタンを非表示
+end note
+"TimerController（画面制御）" -> "TimerInput（入力欄）" : setLocked(false)\n待機中は入力できるようにする
+deactivate "TimerController（画面制御）"
+
+@enduml

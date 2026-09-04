@@ -1,0 +1,131 @@
+@startuml
+title タイマー機能 シーケンス図 開始 / カウントダウン / 一時停止・再開 / キャンセル / 終了
+
+actor 利用者
+participant "TimerController（画面制御）"
+participant "TimerInput（入力欄）"
+participant "Timer（タイマー本体）"
+participant "TimerHistoryManager（履歴管理）"
+participant "AppStorage（保存）"
+participant "format（表示整形）"
+participant "タイマー表示欄"
+
+' ============================================================
+' 1. タイマー開始
+' ============================================================
+== 1. タイマー開始（Start ボタン） ==
+
+利用者 -> "TimerController（画面制御）" : 操作ボタン（Start）をクリック
+activate "TimerController（画面制御）"
+"TimerController（画面制御）" -> "TimerController（画面制御）" : handleAction()\n現在の状態が待機（idle）なので start()
+
+"TimerController（画面制御）" -> "TimerInput（入力欄）" : getTotalSeconds()\n合計秒数を取得
+"TimerInput（入力欄）" --> "TimerController（画面制御）" : 合計秒数を返す
+note right of "TimerController（画面制御）"
+  合計秒数が 00:00:01 未満なら開始しない
+end note
+
+"TimerController（画面制御）" -> "Timer（タイマー本体）" : start(合計秒数)\nカウントダウンを開始
+activate "Timer（タイマー本体）"
+"Timer（タイマー本体）" -> "Timer（タイマー本体）" : 残り秒数をセット
+"Timer（タイマー本体）" -> "Timer（タイマー本体）" : 状態を実行中（running）に変更
+"Timer（タイマー本体）" -> "TimerController（画面制御）" : onStateChange(実行中)\n状態が変わったことを通知
+"TimerController（画面制御）" -> "TimerController（画面制御）" : 状態を記録し、画面表示を更新
+"Timer（タイマー本体）" -> "TimerController（画面制御）" : onTick(残り秒数)\n残り時間を通知
+"TimerController（画面制御）" -> "format（表示整形）" : formatTime(残り秒数)\n表示用に整形
+"format（表示整形）" --> "TimerController（画面制御）" : 「時:分:秒」の文字列
+"TimerController（画面制御）" -> "タイマー表示欄" : 残り時間を表示
+"Timer（タイマー本体）" -> "Timer（タイマー本体）" : 1秒ごとのカウントダウン（interval）を開始
+deactivate "Timer（タイマー本体）"
+
+' ---- 開始時に履歴へ保存 ----
+"TimerController（画面制御）" -> "TimerInput（入力欄）" : getTimeParts()\n時・分・秒を取得
+"TimerInput（入力欄）" --> "TimerController（画面制御）" : 時・分・秒を返す
+"TimerController（画面制御）" -> "TimerHistoryManager（履歴管理）" : add(時, 分, 秒)\n設定時間を履歴に追加
+activate "TimerHistoryManager（履歴管理）"
+"TimerHistoryManager（履歴管理）" -> "TimerHistoryManager（履歴管理）" : 同じ時間の履歴がないか判定\n（あれば追加しない）
+"TimerHistoryManager（履歴管理）" -> "TimerHistoryManager（履歴管理）" : 5件を超える場合は\n最も古い履歴を削除して追加
+"TimerHistoryManager（履歴管理）" -> "AppStorage（保存）" : load() → 保存データを取得
+"TimerHistoryManager（履歴管理）" -> "AppStorage（保存）" : save(履歴入りデータ)\nローカルストレージへ保存
+deactivate "TimerHistoryManager（履歴管理）"
+"TimerController（画面制御）" -> "TimerController（画面制御）" : 履歴の有無で\nHistory ボタンの表示を更新
+deactivate "TimerController（画面制御）"
+
+' ============================================================
+' 2. カウントダウン（毎秒の繰り返し）
+' ============================================================
+== 2. カウントダウン（1秒ごとの繰り返し） ==
+
+loop 1秒ごとに繰り返す
+  "Timer（タイマー本体）" -> "Timer（タイマー本体）" : 残り秒数を 1 減らす
+  "Timer（タイマー本体）" -> "TimerController（画面制御）" : onTick(残り秒数)
+  "TimerController（画面制御）" -> "format（表示整形）" : formatTime(残り秒数)
+  "format（表示整形）" --> "TimerController（画面制御）" : 「時:分:秒」の文字列
+  "TimerController（画面制御）" -> "タイマー表示欄" : 残り時間を更新表示
+  "Timer（タイマー本体）" -> "Timer（タイマー本体）" : 残り秒数が 0 になったか判定
+end
+
+' ============================================================
+' 3. 一時停止
+' ============================================================
+== 3. 一時停止（Pause） ==
+
+利用者 -> "TimerController（画面制御）" : 操作ボタン（Pause）をクリック
+"TimerController（画面制御）" -> "TimerController（画面制御）" : handleAction()\n実行中なので一時停止を指示
+"TimerController（画面制御）" -> "Timer（タイマー本体）" : pause()\nカウントダウンを止める
+"Timer（タイマー本体）" -> "Timer（タイマー本体）" : カウントダウンを解除し\n状態を一時停止（paused）に変更
+"Timer（タイマー本体）" -> "TimerController（画面制御）" : onStateChange(一時停止)
+"TimerController（画面制御）" -> "TimerController（画面制御）" : ボタン表示を更新\n（Resume 表示など）
+note right of "Timer（タイマー本体）"
+  一時停止時点の残り時間は保持される
+end note
+
+' ============================================================
+' 4. 再開
+' ============================================================
+== 4. 再開（Resume） ==
+
+利用者 -> "TimerController（画面制御）" : 操作ボタン（Resume）をクリック
+"TimerController（画面制御）" -> "TimerController（画面制御）" : handleAction()\n一時停止中なので再開を指示
+"TimerController（画面制御）" -> "Timer（タイマー本体）" : resume()\nカウントダウンを再開
+"Timer（タイマー本体）" -> "Timer（タイマー本体）" : 状態を実行中に戻し\nカウントダウンを再開
+"Timer（タイマー本体）" -> "TimerController（画面制御）" : onStateChange(実行中)
+"TimerController（画面制御）" -> "TimerController（画面制御）" : ボタン表示を更新\n（Pause 表示など）
+
+' ============================================================
+' 5. キャンセル
+' ============================================================
+== 5. キャンセル（Cancel ボタン） ==
+
+利用者 -> "TimerController（画面制御）" : Cancel ボタンをクリック
+"TimerController（画面制御）" -> "Timer（タイマー本体）" : cancel()\nタイマーを止めて待機に戻す
+activate "Timer（タイマー本体）"
+"Timer（タイマー本体）" -> "Timer（タイマー本体）" : カウントダウンを解除し\n残り秒数を 0 に戻す
+"Timer（タイマー本体）" -> "Timer（タイマー本体）" : 状態を待機（idle）に変更
+"Timer（タイマー本体）" -> "TimerController（画面制御）" : onStateChange(待機)
+"TimerController（画面制御）" -> "TimerController（画面制御）" : ボタン表示・入力欄を待機状態に更新
+"Timer（タイマー本体）" -> "TimerController（画面制御）" : onTick(0)
+"TimerController（画面制御）" -> "タイマー表示欄" : 残り時間を 00:00:00 に戻す
+deactivate "Timer（タイマー本体）"
+
+' ============================================================
+' 6. タイマー終了（鳴動）
+' ============================================================
+== 6. タイマー終了（鳴動） ==
+
+"Timer（タイマー本体）" -> "Timer（タイマー本体）" : 残り秒数が 0 になった
+"Timer（タイマー本体）" -> "Timer（タイマー本体）" : カウントダウンを解除し\n状態を鳴動中（ringing）に変更
+"Timer（タイマー本体）" -> "TimerController（画面制御）" : onStateChange(鳴動中)
+"TimerController（画面制御）" -> "TimerController（画面制御）" : ボタン表示を更新\n（Stop 表示・鳴動色など）
+"Timer（タイマー本体）" -> "TimerController（画面制御）" : onTick(0)
+"TimerController（画面制御）" -> "タイマー表示欄" : 残り時間を 00:00:00 に表示
+note right of "Timer（タイマー本体）"
+  ※ 現状は「ringing（鳴動中）」状態に
+    変わるだけ。
+  音声再生・鳴動キュー・ポップアップ通知は
+    未実装（今後実装予定）。
+  鳴動中に操作ボタン（Stop）を押すと
+    停止（stop()）して待機に戻る。
+end note
+
+@enduml

@@ -1,0 +1,321 @@
+@startuml
+title タイマー機能 クラス図（現状実装）
+
+' ===== 列挙型 =====
+enum TimerState {
+  idle : 待機中
+  running : 実行中
+  paused : 一時停止中
+  ringing : 鳴動中
+}
+
+note right of TimerState
+  タイマーの動作状態を表す列挙型
+  ・idle    : 待機中
+  ・running : 実行中
+  ・paused  : 一時停止中
+  ・ringing : 鳴動中
+end note
+
+' ===== 型定義（types/app.ts） =====
+class TimerHistory {
+  + hour: number
+  + minute: number
+  + second: number
+  + createdAt: string
+}
+
+note right of TimerHistory
+  タイマー設定履歴1件分のデータを表す型
+  設定した時・分・秒と、記録した日時を持つ
+end note
+
+class AppData {
+  + version: number
+  + timerHistories: TimerHistory[]
+}
+
+note right of AppData
+  アプリ全体の保存対象データをひとまとめにした型
+  タイマー履歴（timerHistories）を保持する
+end note
+
+' ===== タイマー本体（timer/Timer.ts） =====
+
+class Timer {
+  - state: TimerState
+  - remainingSeconds: number
+  - intervalId: ReturnType<typeof setInterval> | null
+  + getState(): TimerState
+  + getRemainingSeconds(): number
+  + start(totalSeconds: number): void
+  + pause(): void
+  + resume(): void
+  + stop(): void
+  + cancel(): void
+  - startInterval(): void
+  - handleEnd(): void
+  - clearInterval(): void
+  - changeState(state: TimerState): void
+  - notifyTick(): void
+}
+
+note right of Timer
+  タイマーの稼働本体。
+  カウントダウンと状態遷移（待機/実行/一時停止/鳴動）を管理
+end note
+
+' ===== タイマー入力（timer/TimerInput.ts） =====
+
+interface TimeInputField {
+  + slider: HTMLInputElement
+  + textBox: HTMLInputElement
+  + max: number
+}
+
+note right of TimeInputField
+  時・分・秒の入力欄をまとめたインターフェース
+end note
+
+class TimerInput {
+  - fields: TimeInputField[]
+  - onChange: () => void
+  + setChangeListener(listener: () => void): void
+  + getTotalSeconds(): number
+  + getTimeParts(): { hour: number; minute: number; second: number }
+  + setValues(hour: number, minute: number, second: number): void
+  + setLocked(locked: boolean): void
+  - emitChange(): void
+  - normalizeInputValue(raw: string, max: number): number
+  - syncTextFromSlider(field: TimeInputField): void
+  - normalizeTextBox(field: TimeInputField): void
+  - bindEvents(): void
+  - syncAll(): void
+}
+
+note right of TimerInput
+  タイマーの時・分・秒の入力部分を管理するクラス
+  ・スライダーとテキストボックスの連動
+  ・入力値の範囲チェック（小数点切り上げ・負値補完など）
+  ・稼働中の入力禁止（ロック）
+  ・設定時間の合計秒数・時分秒の取得、履歴からの設定値反映
+end note
+
+' ===== タイマー履歴管理（timer/TimerHistoryManager.ts） =====
+
+class TimerHistoryManager {
+  - {static} MAX_HISTORIES: number = 5
+  - histories: TimerHistory[]
+  - storage: AppStorage
+  + add(hour: number, minute: number, second: number): boolean
+  + getAll(): TimerHistory[]
+  + getHistoryCount(): number
+  - removeDuplicate(hour: number, minute: number, second: number): void
+  - saveToStorage(): void
+}
+
+note right of TimerHistoryManager
+  タイマー設定履歴を管理するクラス
+  ・履歴の追加（最大5件）
+  ・同じ時間は重複保存しない（再設定時は既存を削除して一番新しい履歴として先頭に登録し直す）
+  ・履歴の一覧・件数取得
+  ・AppStorage を使ったローカルストレージ保存/読込
+end note
+
+' ===== タイマー履歴モーダル（timer/TimerHistoryModal.ts） =====
+
+class TimerHistoryModalElements {
+  + modal: HTMLElement
+  + list: HTMLElement
+  + closeButton: HTMLButtonElement
+  + setMessage: HTMLElement
+}
+
+note right of TimerHistoryModalElements
+  履歴モーダルウィンドウを構成するDOM要素をまとめたインターフェース
+  モーダル全体・一覧リスト・閉じるボタン・「設定しました」表示欄を持つ
+end note
+
+class TimerHistoryModal {
+  - modal: HTMLElement
+  - list: HTMLElement
+  - closeButton: HTMLButtonElement
+  - setMessage: HTMLElement
+  - timerInput: TimerInput
+  - historyManager: TimerHistoryManager
+  + open(): void
+  + close(): void
+  - renderHistoryList(): void
+  - applyHistorySetting(history: TimerHistory): void
+  - showSetMessage(): void
+}
+
+note right of TimerHistoryModal
+  タイマー設定履歴のモーダル（履歴一覧の表示・選択反映）を管理するクラス
+  ・履歴一覧をモーダルに描画・表示/閉じる
+  ・履歴をクリックすると設定値を TimerInput へ反映し「設定しました」を表示
+end note
+
+' ===== タイマー画面制御（timer/TimerController.ts） =====
+' 操作ロジックと各クラス・ビューの橋渡しを担当。表示は TimerView に分離している
+
+class TimerController {
+  - timer: Timer
+  - timerInput: TimerInput
+  - timerHistoryManager: TimerHistoryManager
+  - timerHistoryModal: TimerHistoryModal
+  - timerView: TimerView
+  - state: TimerState
+  + refreshButtons(): void
+  - handleAction(): void
+  - start(): void
+  - cancel(): void
+  - updateUi(): void
+}
+
+note right of TimerController
+  タイマーの「操作ロジック」と各クラス・ビューの橋渡しを担当するクラス
+  ・操作ボタン（Start / Pause / Resume / Stop）の押下に応じた処理の振り分け
+  ・タイマー本体（Timer）との結線・状態変化の受け取り
+  ・状態に応じて TimerView へ値を渡して表示更新
+  ・入力欄のロック（TimerInput への制御）
+end note
+
+' ===== タイマー画面表示（timer/TimerView.ts） =====
+
+class TimerView {
+  - timerDisplay: HTMLElement
+  - timerSetDisplay: HTMLElement
+  - timerSetting: HTMLElement
+  - historyButton: HTMLButtonElement
+  - actionButton: HTMLButtonElement
+  - cancelButton: HTMLButtonElement
+  + bindActionButton(listener: () => void): void
+  + bindCancelButton(listener: () => void): void
+  + bindHistoryButton(listener: () => void): void
+  + updateTimerDisplay(remainingSeconds: number): void
+  + updateUi(state: TimerState, totalSeconds: number, hasHistory: boolean): void
+  - updateActionButton(state: TimerState, totalSeconds: number): void
+  - updateCancelButton(state: TimerState): void
+  - updateHistoryButton(state: TimerState, hasHistory: boolean): void
+  - updateTimerSettingDisplay(state: TimerState, totalSeconds: number): void
+  - updateTimerDisplayColor(state: TimerState): void
+  - setButtonVisible(button: HTMLButtonElement, visible: boolean): void
+}
+
+note right of TimerView
+  タイマー画面の「表示（UI）」を担当するクラス
+  タイマー画面の描画・ボタンの出し分けだけを行う
+  ・残り時間・設定時間の表示
+  ・操作ボタン（Start/Pause/Resume/Stop）のラベル・色の出し分け
+  ・Cancel / History ボタンの表示・押下可否
+  ・タイマー表示の文字色
+  ・各ボタンのクリック処理
+end note
+
+' ===== モード切替（common/ModeController.ts） =====
+
+class ModeController {
+  - timerMode: HTMLElement
+  - alarmMode: HTMLElement
+  - timerModeButton: HTMLButtonElement
+  - alarmModeButton: HTMLButtonElement
+  + showTimerMode(): void
+  + showAlarmMode(): void
+  - setMode(showTimer: boolean): void
+}
+
+note right of ModeController
+  タイマーモードとアラームモードの画面切り替えを管理するクラス
+  非表示クラスの付け外しと、選択中ボタンの制御をする
+end note
+
+' ===== ローカルストレージ（storage/appStorage.ts） =====
+
+class AppStorage {
+  + save(data: AppData): void
+  + load(): AppData
+}
+
+note right of AppStorage
+  アプリ全体のデータ（AppData）をローカルストレージへ保存・読み込みするクラス
+  ・save(): データをJSON文字列へ変換して保存
+  ・load(): 保存済みデータを読み込む（未保存なら空の初期データを返す）
+end note
+
+' ===== 共通フォーマット（common/format.ts、関数モジュール） =====
+' クラスではなく、関数を export するモジュール
+
+class format {
+  + {static} formatTime(total: number): string
+  + {static} formatTimeParts(hour: number, minute: number, second: number): string
+}
+
+note right of format
+  画面表示用の時間・時刻フォーマット関数を集めた共通モジュール
+  ・formatTime      : 総秒数を「時:分:秒」（例: 05:03:12）に変換
+  ・formatTimeParts : 時・分・秒の値を「時:分:秒」（例: 01:02:03）に変換
+end note
+
+' ===== アプリ組み立て（main.ts） =====
+
+class main {
+  + (エントリポイント)
+}
+
+note right of main
+  アプリの入口（エントリポイント）
+  DOM要素を取得し、各クラスを生成・結線してタイマーモードを起動
+  ・DOM 要素を取得
+  ・各クラスを生成して結線
+  ・モード切替ボタンなどのイベント登録
+end note
+
+' ============================================================
+' 関連
+' ============================================================
+
+' --- タイマー画面制御の関連 ---
+TimerController --> Timer : カウントダウンの開始・一時停止・再開・停止・キャンセルを指示
+TimerController --> TimerInput : 設定時間の取得と入力のロック
+TimerController --> TimerHistoryManager : 履歴の記録と履歴数の確認
+TimerController --> TimerHistoryModal : 履歴モーダルの表示
+TimerController --> TimerView : 状態に応じた画面表示の更新
+TimerController --> TimerState : 現在の状態（表示用）を保持
+
+' --- タイマー画面表示（ビュー） ---
+TimerView ..> format : 残り時間・設定時間の表示整形（時:分:秒）
+TimerView --> TimerState : 状態に応じたボタン・色の出し分け
+
+' --- 履歴モーダル ---
+TimerHistoryModal --> TimerInput : 履歴の設定値を入力欄へ反映
+TimerHistoryModal --> TimerHistoryManager : 履歴一覧の取得
+TimerHistoryModal --> TimerHistory : 履歴一覧を画面へ描画
+TimerHistoryModal ..> TimerHistoryModalElements : モーダルのDOM要素を受け取って保持
+
+' --- 履歴管理 ---
+TimerHistoryManager --> TimerHistory : 履歴の保持（新しい順）
+TimerHistoryManager --> AppStorage : ローカルストレージへの保存・読込
+
+' --- タイマー本体 ---
+Timer --> TimerState : 現在の状態を保持
+
+' --- 表示整形の利用 ---
+TimerHistoryModal ..> format : 履歴の表示整形（時:分:秒）
+
+' --- 保存データ ---
+AppStorage ..> AppData : 保存・読込の対象データ
+AppData --> TimerHistory : タイマー履歴の保持
+
+' --- main による生成・結線 ---
+main ..> ModeController : モード切替を生成して結線
+main ..> AppStorage : データ保存の準備
+main ..> Timer : タイマー本体を生成
+main ..> TimerInput : 入力欄の管理を生成
+main ..> TimerView : タイマー画面の表示（ビュー）を生成
+main ..> TimerHistoryManager : 履歴管理を生成
+main ..> TimerHistoryModal : 履歴モーダルを生成
+main ..> TimerController : タイマー画面の制御を生成
+main ..> TimerHistoryModalElements : モーダルのDOM要素を組み立て
+
+@enduml

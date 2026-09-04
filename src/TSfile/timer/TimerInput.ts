@@ -8,7 +8,7 @@
  * ・入力内容が変わったことを外部へ通知
  */
 
-/** 時・分・秒の1つの入力欄（スライダー + テキストボックス）を表す */
+/** 時・分・秒の入力欄（スライダー + テキストボックス）*/
 export interface TimeInputField {
   /** スライダー */
   slider: HTMLInputElement;
@@ -53,6 +53,36 @@ export class TimerInput {
       field.slider.disabled = locked;
       field.textBox.disabled = locked;
     }
+  }
+
+  /**
+   * 時・分・秒の現在の設定値をそれぞれ返す
+   * @returns 時・分・秒（hour / minute / second）
+   */
+  getTimeParts(): { hour: number; minute: number; second: number } {
+    /* fields は [時, 分, 秒] の順で作られるため、同じ順番で値を取り出す */
+    const [hour, minute, second] = this.fields.map((field) =>
+      Number(field.slider.value)
+    );
+    return { hour: hour ?? 0, minute: minute ?? 0, second: second ?? 0 };
+  }
+
+  /**
+   * 時・分・秒の設定値をまとめてセットする（履歴から設定値を反映するときに使う）
+   * @param hour 時
+   * @param minute 分
+   * @param second 秒
+   */
+  setValues(hour: number, minute: number, second: number): void {
+    const values = [hour, minute, second];
+    this.fields.forEach((field, index) => {
+      /* 各欄の上限値を超えないよう補完して反映する */
+      const value = Math.min(Math.max(values[index] ?? 0, 0), field.max);
+      field.slider.value = String(value);
+      this.syncTextFromSlider(field);
+    });
+    /* 入力内容が変わったことを外部（ボタン表示など）へ通知する */
+    this.emitChange();
   }
 
   private emitChange(): void {

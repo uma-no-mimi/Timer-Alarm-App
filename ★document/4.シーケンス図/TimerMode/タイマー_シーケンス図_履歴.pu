@@ -1,0 +1,79 @@
+@startuml
+title タイマー機能 シーケンス図 タイマー設定履歴 / 履歴モーダル / 履歴選択反映
+
+' ============================================================
+' 補足：
+' ・このシーケンス図は「実装済みコード」に基づく現状の動作を示す
+' ・履歴の「保存」はタイマー開始時に行われ、最大5件・重複排除・最古削除の仕様
+' ============================================================
+
+' ===== 参加者（ライフライン） =====
+actor 利用者
+participant "TimerController（画面制御）"
+participant "TimerHistoryModal（履歴モーダル）"
+participant "TimerHistoryManager（履歴管理）"
+participant "TimerInput（入力欄）"
+participant "format（表示整形）"
+
+' ============================================================
+' 1. 履歴モーダルを開く（History ボタン）
+' ============================================================
+== 1. 履歴モーダルを開く（History ボタン） ==
+
+利用者 -> "TimerController（画面制御）" : History ボタンをクリック
+note right of "TimerController（画面制御）"
+  履歴が0件の間は History ボタンが無効化され、
+  押せない（待機中のみ表示）
+end note
+"TimerController（画面制御）" -> "TimerHistoryModal（履歴モーダル）" : open()\n履歴モーダルを開く
+activate "TimerHistoryModal（履歴モーダル）"
+"TimerHistoryModal（履歴モーダル）" -> "TimerHistoryModal（履歴モーダル）" : renderHistoryList()\n履歴一覧を描画する
+
+' ---- 履歴一覧を取得して描画 ----
+"TimerHistoryModal（履歴モーダル）" -> "TimerHistoryManager（履歴管理）" : getAll()\n履歴一覧を取得
+"TimerHistoryManager（履歴管理）" --> "TimerHistoryModal（履歴モーダル）" : 履歴一覧（古い順）を返す
+"TimerHistoryModal（履歴モーダル）" -> "TimerHistoryModal（履歴モーダル）" : モーダルを表示する（hidden解除）
+"TimerHistoryModal（履歴モーダル）" --> 利用者 : 履歴一覧が表示される
+deactivate "TimerHistoryModal（履歴モーダル）"
+
+' ============================================================
+' 2. 履歴を選択して設定値へ反映
+' ============================================================
+== 2. 履歴を選択して設定値へ反映 ==
+
+利用者 -> "TimerHistoryModal（履歴モーダル）" : 履歴の1件（時刻）をクリック
+activate "TimerHistoryModal（履歴モーダル）"
+"TimerHistoryModal（履歴モーダル）" -> "TimerHistoryModal（履歴モーダル）" : applyHistorySetting(履歴)\n選択した履歴を適用する
+
+' ---- タイマー入力欄へ反映 ----
+"TimerHistoryModal（履歴モーダル）" -> "TimerInput（入力欄）" : setValues(時, 分, 秒)\n設定値を入力欄へ反映
+activate "TimerInput（入力欄）"
+"TimerInput（入力欄）" -> "TimerInput（入力欄）" : スライダー・テキストボックスへ反映
+"TimerInput（入力欄）" -> "TimerController（画面制御）" : 入力が変わったことを通知\n→ refreshButtons()
+"TimerController（画面制御）" -> "TimerController（画面制御）" : ボタン表示を更新\n（Start 表示など）
+deactivate "TimerInput（入力欄）"
+
+' ---- モーダルを閉じて「設定しました」を表示 ----
+"TimerHistoryModal（履歴モーダル）" -> "TimerHistoryModal（履歴モーダル）" : close()\nモーダルを閉じる（hidden付与）
+"TimerHistoryModal（履歴モーダル）" -> "TimerHistoryModal（履歴モーダル）" : showSetMessage()\n「設定しました」を表示
+"TimerHistoryModal（履歴モーダル）" -> "TimerHistoryModal（履歴モーダル）" : 2.5秒後に「設定しました」を非表示
+"TimerHistoryModal（履歴モーダル）" --> 利用者 : 設定値へ反映され、\n履歴モーダルが閉じる
+deactivate "TimerHistoryModal（履歴モーダル）"
+
+' ============================================================
+' 3. 履歴の保存（タイマー開始時に行われる処理）
+' ============================================================
+== 3. 履歴の保存（タイマー開始時の処理） ==
+
+note over "TimerController（画面制御）", "TimerHistoryManager（履歴管理）"
+  タイマーを開始（start）したときに、設定した時・分・秒を履歴へ保存する
+end note
+"TimerController（画面制御）" -> "TimerHistoryManager（履歴管理）" : add(時, 分, 秒)
+activate "TimerHistoryManager（履歴管理）"
+"TimerHistoryManager（履歴管理）" -> "TimerHistoryManager（履歴管理）" : 同じ時間の履歴があるか判定\n（あれば追加しない）
+"TimerHistoryManager（履歴管理）" -> "TimerHistoryManager（履歴管理）" : 5件を超える場合は\n最も古い履歴を削除して追加
+"TimerHistoryManager（履歴管理）" -> "TimerHistoryManager（履歴管理）" : 保存情報を作成して\nローカルストレージへ保存
+"TimerHistoryManager（履歴管理）" --> "TimerController（画面制御）" : 追加できたかどうかを返す
+deactivate "TimerHistoryManager（履歴管理）"
+
+@enduml

@@ -8,7 +8,11 @@
  */
 
 /** タイマーの状態 */
-export type TimerState = "idle" | "running" | "paused" | "ringing";
+export type TimerState =
+  "idle" | // 待機状態
+  "running" | // 実行中
+  "paused" | // 一時停止
+  "ringing"; // 鳴動中
 
 /** Timer から画面へ通知するためのイベント */
 export interface TimerEvents {
@@ -18,13 +22,12 @@ export interface TimerEvents {
   onStateChange?: (state: TimerState) => void;
 }
 
+/** タイマーの稼働を管理するクラス */
 export class Timer {
   /** 現在の状態 */
   private state: TimerState = "idle";
   /** 残り秒数 */
   private remainingSeconds = 0;
-  /** 開始時に設定された時間（秒）。停止やキャンセル後に表示へ戻すために保持する */
-  private initialSeconds = 0;
   /** 1秒ごとに動くカウントダウンの管理番号 */
   private intervalId: ReturnType<typeof setInterval> | null = null;
   /** 画面側への通知先 */
@@ -54,7 +57,6 @@ export class Timer {
       return;
     }
     this.remainingSeconds = totalSeconds;
-    this.initialSeconds = totalSeconds;
     this.changeState("running");
     this.notifyTick();
     this.startInterval();
@@ -84,24 +86,25 @@ export class Timer {
       return;
     }
     this.clearInterval();
-    /* 停止後は表示を設定時間に戻す（Cancel と同じ挙動） */
-    this.remainingSeconds = this.initialSeconds;
+    /* 停止後は表示を00:00:00に戻し、待機状態に戻す */
+    this.remainingSeconds = 0;
     this.changeState("idle");
     this.notifyTick();
   }
 
   /** 実行中・一時停止中のタイマーをキャンセルして待機に戻す（連打しても1回だけ） */
-  cancel(totalSeconds: number): void {
+  cancel(): void {
     if (this.state !== "running" && this.state !== "paused") {
       return;
     }
     this.clearInterval();
-    /* キャンセル後は設定時間を表示に戻す */
-    this.remainingSeconds = totalSeconds;
+    /* キャンセル後は表示を00:00:00に戻し、待機状態に戻す */
+    this.remainingSeconds = 0;
     this.changeState("idle");
     this.notifyTick();
   }
 
+  /** 1秒ごとに残り時間を減らす処理を開始する */
   private startInterval(): void {
     this.intervalId = setInterval(() => {
       this.remainingSeconds -= 1;

@@ -1,0 +1,67 @@
+@startuml
+title タイマー機能 シーケンス図 データ保存・読み込み（ローカルストレージ）
+
+actor 利用者
+participant "main（入口）"
+participant "TimerController（画面制御）"
+participant "TimerHistoryManager（履歴管理）"
+participant "AppStorage（保存）"
+participant "localStorage（ブラウザ保存領域）"
+participant "AppData（保存データ構造）"
+
+' ============================================================
+' 1. 読み込み（起動時）
+' ============================================================
+== 1. 読み込み（起動時） ==
+
+"main（入口）" -> "TimerHistoryManager（履歴管理）" : new TimerHistoryManager(保存)\n履歴管理を生成
+activate "TimerHistoryManager（履歴管理）"
+"TimerHistoryManager（履歴管理）" -> "AppStorage（保存）" : load()\n保存済みデータを読み込む
+activate "AppStorage（保存）"
+"AppStorage（保存）" -> "localStorage（ブラウザ保存領域）" : getItem("alarmTimerApp")\n保存済みのJSON文字列を取得
+
+' ---- ケース1：保存データがある場合 ----
+note over "localStorage（ブラウザ保存領域）", "TimerHistoryManager（履歴管理）" : **保存データあり → 復元**
+"localStorage（ブラウザ保存領域）" --> "AppStorage（保存）" : JSON文字列を返す
+"AppStorage（保存）" -> "AppStorage（保存）" : JSON.parse(文字列)\nJSONを AppData 構造に変換
+"AppStorage（保存）" --> "TimerHistoryManager（履歴管理）" : AppData を返す
+"TimerHistoryManager（履歴管理）" -> "TimerHistoryManager（履歴管理）" : AppData から\ntimerHistories を取り出して保持
+
+' ---- ケース2：保存データがない場合（初回起動など） ----
+note over "localStorage（ブラウザ保存領域）", "TimerHistoryManager（履歴管理）" : **保存データなし（初回起動）→ 空データで開始**
+"localStorage（ブラウザ保存領域）" --> "AppStorage（保存）" : null を返す
+"AppStorage（保存）" -> "AppStorage（保存）" : 空の初期データを返す
+"AppStorage（保存）" --> "TimerHistoryManager（履歴管理）" : 空の初期 AppData を返す
+"TimerHistoryManager（履歴管理）" -> "TimerHistoryManager（履歴管理）" : 履歴なし（0件）で開始
+deactivate "AppStorage（保存）"
+deactivate "TimerHistoryManager（履歴管理）"
+
+' ============================================================
+' 2. 保存（タイマー開始時） - 履歴を追加して保存
+' ============================================================
+== 2. 保存（タイマー開始時） - 履歴を追加して保存 ==
+
+"TimerController（画面制御）" -> "TimerHistoryManager（履歴管理）" : add(時, 分, 秒)\n設定した時間を履歴へ追加
+activate "TimerHistoryManager（履歴管理）"
+"TimerHistoryManager（履歴管理）" -> "TimerHistoryManager（履歴管理）" : 同じ時間の履歴がないか判定\n（ある場合は追加しない・保存しない）
+"TimerHistoryManager（履歴管理）" -> "TimerHistoryManager（履歴管理）" : 5件を超える場合は\n最も古い履歴を削除して末尾に追加\n（createdAt に現在日時を記録）
+
+' ---- saveToStorage() の内部処理 ----
+"TimerHistoryManager（履歴管理）" -> "AppStorage（保存）" : load()\n現在の保存データを読み込む
+activate "AppStorage（保存）"
+"AppStorage（保存）" -> "localStorage（ブラウザ保存領域）" : getItem("alarmTimerApp")
+"localStorage（ブラウザ保存領域）" --> "AppStorage（保存）" : 保存済みJSON文字列
+"AppStorage（保存）" --> "TimerHistoryManager（履歴管理）" : AppData を返す
+deactivate "AppStorage（保存）"
+
+"TimerHistoryManager（履歴管理）" -> "TimerHistoryManager（履歴管理）" : 読み込んだ AppData の\ntimerHistories を更新\n（他のデータ（alarms等）は保持）
+"TimerHistoryManager（履歴管理）" -> "AppData（保存データ構造）" : 更新後の AppData を渡す\n（version / alarms / timerHistories）
+"TimerHistoryManager（履歴管理）" -> "AppStorage（保存）" : save(AppData)\n更新データを保存
+activate "AppStorage（保存）"
+"AppStorage（保存）" -> "AppStorage（保存）" : JSON.stringify(AppData)\nオブジェクトを JSON 文字列に変換
+"AppStorage（保存）" -> "localStorage（ブラウザ保存領域）" : setItem("alarmTimerApp", JSON文字列)\n永続化
+deactivate "AppStorage（保存）"
+deactivate "TimerHistoryManager（履歴管理）"
+
+
+@enduml

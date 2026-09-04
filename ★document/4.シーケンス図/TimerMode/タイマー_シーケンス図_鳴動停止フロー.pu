@@ -1,0 +1,82 @@
+@startuml
+title タイマー機能 シーケンス図 鳴動中（ringing）の停止フロー詳細
+
+' ============================================================
+' 補足：
+' ・このシーケンス図は「実装済みコード」に基づく現状の動作を示す
+' ・鳴動中（ringing）は、残り時間が0になったあとの状態
+' ・現状は音声再生・鳴動キュー・ポップアップ通知が未実装のため、
+'   鳴動中にできるのは操作ボタン（Stop）での停止のみ
+' ============================================================
+
+' ===== 参加者（ライフライン） =====
+actor 利用者
+participant "操作ボタン（Start/Pause/Resume/Stop）"
+participant "TimerController（画面制御）"
+participant "Timer（タイマー本体）"
+participant "format（表示整形）"
+participant "タイマー表示欄"
+participant "タイマー入力欄"
+participant "History ボタン"
+
+' ============================================================
+' 1. 鳴動中（ringing）の開始
+' ============================================================
+== 1. 鳴動中（ringing）の開始 ==
+
+note over "Timer（タイマー本体）"
+  残り時間が 0 になると、タイマーの状態が
+  「鳴動中（ringing）」に変わる
+  （1秒ごとのカウントダウンは終了）
+end note
+"Timer（タイマー本体）" -> "Timer（タイマー本体）" : 状態を鳴動中（ringing）に変更\n（カウントダウンは停止）
+"Timer（タイマー本体）" -> "TimerController（画面制御）" : 状態が変わったことを通知\nonStateChange(鳴動中)
+activate "TimerController（画面制御）"
+"TimerController（画面制御）" -> "TimerController（画面制御）" : 現在の状態を「鳴動中」として記録
+"TimerController（画面制御）" -> "操作ボタン（Start/Pause/Resume/Stop）" : ラベルを「Stop」に変更\n（停止色・鳴動用クラスを付与）
+"TimerController（画面制御）" -> "History ボタン" : 非表示にする\n（鳴動中は History を出さない）
+"TimerController（画面制御）" -> "タイマー入力欄" : 入力ロックを維持（続きで無効）
+"TimerController（画面制御）" -> "タイマー表示欄" : 鳴動中（ringing）の文字色を適用
+deactivate "TimerController（画面制御）"
+"Timer（タイマー本体）" -> "TimerController（画面制御）" : 残り時間を通知\nonTick(0)
+activate "TimerController（画面制御）"
+"TimerController（画面制御）" -> "format（表示整形）" : formatTime(0)
+"format（表示整形）" --> "TimerController（画面制御）" : 「00:00:00」
+"TimerController（画面制御）" -> "タイマー表示欄" : 00:00:00 を表示
+deactivate "TimerController（画面制御）"
+
+' ============================================================
+' 2. 停止（Stop ボタン押下）
+' ============================================================
+== 2. 停止（Stop ボタン押下） ==
+
+利用者 -> "操作ボタン（Start/Pause/Resume/Stop）" : 操作ボタン（Stop）をクリック
+
+"操作ボタン（Start/Pause/Resume/Stop）" -> "TimerController（画面制御）" : クリックイベント発火
+activate "TimerController（画面制御）"
+"TimerController（画面制御）" -> "TimerController（画面制御）" : handleAction()\n現在の状態が鳴動中なので stop() を呼ぶ
+
+"TimerController（画面制御）" -> "Timer（タイマー本体）" : stop()\n鳴動を停止して待機に戻す
+activate "Timer（タイマー本体）"
+"Timer（タイマー本体）" -> "Timer（タイマー本体）" : カウントダウンが残っていないことを確認
+"Timer（タイマー本体）" -> "Timer（タイマー本体）" : 残り秒数を 0 に戻す
+"Timer（タイマー本体）" -> "Timer（タイマー本体）" : 状態を待機（idle）に変更
+"Timer（タイマー本体）" -> "TimerController（画面制御）" : 状態が変わったことを通知\nonStateChange(待機)
+"TimerController（画面制御）" -> "TimerController（画面制御）" : 現在の状態を「待機」として記録
+"TimerController（画面制御）" -> "TimerController（画面制御）" : updateUi()\nボタン表示を待機状態に更新
+"Timer（タイマー本体）" -> "TimerController（画面制御）" : 残り時間を通知\nonTick(0)
+deactivate "Timer（タイマー本体）"
+
+' ---- 待機（idle）に戻った後の画面更新 ----
+"TimerController（画面制御）" -> "操作ボタン（Start/Pause/Resume/Stop）" : ラベルを「Start」に戻す\n（00:00:01以上なら表示、\n未満なら非表示）
+"TimerController（画面制御）" -> "History ボタン" : 再表示・押下可否を更新\n（履歴があれば押せる）
+"TimerController（画面制御）" -> "History ボタン" : 履歴の有無を確認\ngetHistoryCount()
+"TimerController（画面制御）" -> "タイマー入力欄" : setLocked(false)\n入力ロックを解除
+"TimerController（画面制御）" -> "タイマー入力欄" : 入力欄を再表示\n（設定時間の表示も消去）
+"TimerController（画面制御）" -> "format（表示整形）" : formatTime(0)
+"format（表示整形）" --> "TimerController（画面制御）" : 「00:00:00」
+"TimerController（画面制御）" -> "タイマー表示欄" : 00:00:00 を表示\n（鳴動時の文字色を解除）
+"TimerController（画面制御）" --> 利用者 : 停止が完了し、待機状態に戻る
+deactivate "TimerController（画面制御）"
+
+@enduml

@@ -5,10 +5,14 @@
  * DOM要素の取得、オブジェクトの生成、イベントリスナーの設定などを行う
  */
 
-import { ModeController } from "./ModeController";
-import { TimerInput, type TimeInputField } from "./TimerInput";
-import { Timer } from "./Timer";
-import { TimerController } from "./TimerController";
+import { ModeController } from "./common/ModeController";
+import { TimerInput, type TimeInputField } from "./timer/TimerInput";
+import { Timer } from "./timer/Timer";
+import { TimerView } from "./timer/TimerView";
+import { TimerController } from "./timer/TimerController";
+import { TimerHistoryManager } from "./timer/TimerHistoryManager";
+import { TimerHistoryModal, type TimerHistoryModalElements } from "./timer/TimerHistoryModal";
+import { AppStorage } from "./storage/appStorage";
 
 
 /* モード切替（DOM）：画面を切り替えるためのボタンと、2つの画面を取得する */
@@ -68,16 +72,47 @@ const timerInput = new TimerInput(timeFields);
 /* タイマーの稼働本体（カウントダウンや状態管理）を作成 */
 const timer = new Timer();
 
-/* タイマー制御クラスを、表示欄・設定時間表示欄・入力欄・Historyボタン・操作ボタン・タイマー本体・入力クラスを渡して作成 */
-const timerController = new TimerController(
+/* 履歴モーダル・「設定しました」表示を構成するDOM要素を取得する */
+const historyModal = document.querySelector<HTMLElement>("#historyModal")!;
+const historyList = document.querySelector<HTMLElement>("#historyList")!;
+const historyCloseButton = document.querySelector<HTMLButtonElement>("#historyCloseButton")!;
+const timerSetMessage = document.querySelector<HTMLElement>("#timerSetMessage")!;
+
+const historyModalElements: TimerHistoryModalElements = {
+  modal: historyModal,
+  list: historyList,
+  closeButton: historyCloseButton,
+  setMessage: timerSetMessage,
+};
+
+/* ローカルストレージ操作とタイマー設定履歴の管理を作成する */
+const appStorage = new AppStorage();
+const timerHistoryManager = new TimerHistoryManager(appStorage);
+
+/* 履歴モーダルの管理クラスを作成（履歴一覧の表示・選択反映を担当） */
+const timerHistoryModal = new TimerHistoryModal(
+  historyModalElements,
+  timerInput,
+  timerHistoryManager
+);
+
+/* タイマー画面の表示（ビュー）を、表示欄・操作ボタンを渡して作成 */
+const timerView = new TimerView(
   timerDisplay,
   timerSetDisplay,
   timerSetting,
   historyButton,
   timerActionButton,
-  cancelButton,
+  cancelButton
+);
+
+/* タイマー制御クラスを、ビュー・タイマー本体・入力クラス・履歴管理・履歴モーダルを渡して作成 */
+const timerController = new TimerController(
+  timerView,
   timer,
-  timerInput
+  timerInput,
+  timerHistoryManager,
+  timerHistoryModal
 );
 
 /* 「入力欄の値が変わったら、ボタンの表示（Start等）も更新する」ようにつなぐ */

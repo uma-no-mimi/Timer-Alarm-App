@@ -5,7 +5,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Timer-Alarm App</title>
-  <link rel="stylesheet" href="./src/css/reset.css">
   <link rel="stylesheet" href="./src/css/base.css">
   <link rel="stylesheet" href="./src/css/timer.css">
   <link rel="stylesheet" href="./src/css/alarm.css">
@@ -32,7 +31,7 @@
 
   <main>
 
-    <!-- タイマーモード -->
+    <!-- ◆タイマーモード -->
 
     <section id="timerMode" class="mode-screen">
 
@@ -43,19 +42,23 @@
         00:00:00
       </div>
 
+      <!-- タイマー設定履歴ボタン -->
       <button id="historyButton" class="history-button" type="button">
         History
-        <span class="history-icon">↶</span>
+        <span class="history-icon">⟲</span>
       </button>
 
+      <!-- タイマー操作ボタン -->
       <div class="timer-actions">
         <button id="timerActionButton" class="start-button invisible" type="button">Start</button>
       </div>
 
+      <!-- タイマーキャンセルボタン -->
       <div class="timer-cancel">
         <button id="cancelButton" class="start-button cancel-button invisible" type="button">Cancel</button>
       </div>
 
+      <!-- タイマー設定スライダー・入力欄 -->
       <div class="timer-setting" id="timerSetting">
 
         <div class="slider-row">
@@ -84,22 +87,38 @@
 
       </div>
 
+      <!-- 「設定しました」メッセージ（履歴から設定値を反映したときに数秒間表示） -->
+      <div id="timerSetMessage" class="timer-set-message hidden"></div>
+
+      <!-- タイマー設定履歴モーダルウィンドウ -->
+      <div id="historyModal" class="history-modal hidden">
+        <div class="history-modal-content">
+          <div class="history-modal-header">
+            <h2>History⟲</h2>
+            <button id="historyCloseButton" class="history-close-button" type="button" aria-label="閉じる">×</button>
+          </div>
+          <ul id="historyList" class="history-list"></ul>
+        </div>
+      </div>
+
     </section>
 
 
-    <!-- アラームモード -->
-
+    <!-- ◆アラームモード -->
     <section id="alarmMode" class="mode-screen hidden">
 
+      <!--現在時刻-->
       <div class="timer-display alarm-display">
         00:00
       </div>
 
+      <!-- アラーム設定ボタン -->
       <button class="alarm-setting-button" type="button">
         Alarm Setting
       </button>
 
 
+      <!-- アラーム設定リスト -->
       <div class="alarm-list">
 
         <h2>Setting List</h2>
